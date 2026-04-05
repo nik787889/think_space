@@ -6,7 +6,9 @@ import { createBoard, deleteBoard, updateBoardFolder } from "@/server/actions/bo
 import { createFolder } from "@/server/actions/folder";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronDown, ChevronRight, Folder as FolderIcon, MoreVertical, Plus, Trash2, File as FileIcon, FolderInput } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder as FolderIcon, MoreVertical, Plus, Trash2, File as FileIcon, FolderInput, LogOut } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 type SidebarProps = {
     folders: (Folder & { boards: Board[] })[];
@@ -14,8 +16,19 @@ type SidebarProps = {
 };
 
 export default function Sidebar({ folders, unassignedBoards }: SidebarProps) {
+    const router = useRouter();
     const params = useParams();
     const activeBoardId = params.id as string | undefined;
+
+    const handleLogout = async () => {
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login");
+                },
+            },
+        });
+    };
 
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
@@ -123,13 +136,21 @@ export default function Sidebar({ folders, unassignedBoards }: SidebarProps) {
                 </div>
             </div>
             
-            <div className="p-4 border-t mt-auto">
+            <div className="p-4 border-t mt-auto space-y-1">
                 <form action={createBoard}>
-                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm">
+                    <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm shadow-sm mb-1">
                         <Plus className="w-4 h-4" />
                         New Board
                     </button>
                 </form>
+                
+                <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-red-500 hover:bg-slate-50 font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                </button>
             </div>
         </aside>
     );
