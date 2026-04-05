@@ -1,0 +1,104 @@
+// This is your Prisma schema file
+
+datasource db {
+  provider = "postgresql"
+  // Remove the url line from here!
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// --- AUTHENTICATION (Better Auth) ---
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  // Relations to Think Space logic
+  boards  Board[]
+  folders Folder[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+}
+
+// --- THINK SPACE CORE LOGIC ---
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  boards    Board[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Board {
+  id       String  @id @default(cuid())
+  title    String  @default("Untitled Board")
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id])
+
+  // The actual whiteboard data
+  elements Element[]
+  snapshot Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Element {
+  id     String @id @default(uuid()) // Whiteboard libraries often use UUIDs
+  type   String // e.g., "rectangle", "ellipse", "arrow", "text", "draw"
+  x      Float
+  y      Float
+  width  Float?
+  height Float?
+  angle  Float  @default(0)
+
+  // JSONB for flexible styling (color, opacity, font-size, etc.)
+  properties Json
+
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  index   String // Used for "Z-Index" layering (which element is on top)
+  version Int    @default(1) // For optimistic concurrency control
+}
